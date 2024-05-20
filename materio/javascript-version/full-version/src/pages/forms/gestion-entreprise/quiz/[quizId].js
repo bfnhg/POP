@@ -1,116 +1,122 @@
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
 
 const Quiz = () => {
-  const router = useRouter();
-  const { quizId } = router.query;
+  const router = useRouter()
+  const { quizId } = router.query
 
-  const [sections, setSections] = useState([]);
-  const [currentSection, setCurrentSection] = useState(0);
+  const [sections, setSections] = useState([])
+  const [currentSection, setCurrentSection] = useState(0)
 
-  const [selections, setSelections] = useState([]);
-  const [submitted, setSubmitted] = useState(false);
-  const [sectionScores, setSectionScores] = useState([]);
-  const [sideImage, setSideImage] = useState('side-img.png');
+  const [selections, setSelections] = useState([])
+  const [submitted, setSubmitted] = useState(false)
+  const [sectionScores, setSectionScores] = useState([])
+  const [sideImage, setSideImage] = useState('side-img.png')
+
+  useEffect(() => {
+    console.log('asdfghjkl')
+    console.log(sectionScores)
+    console.log(sections)
+  }, [sectionScores, sections])
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const sectionsResponse = await fetch(`http://localhost:5000/api/v1/sections?quizId=${quizId}`);
-        const sectionsData = await sectionsResponse.json();
+        const sectionsResponse = await fetch(`http://localhost:5000/api/v1/sections?quizId=${quizId}`)
+        const sectionsData = await sectionsResponse.json()
 
         const sectionsWithQuestions = await Promise.all(
           sectionsData.sections.map(async section => {
-            const questionsResponse = await fetch(`http://localhost:5000/api/v1/questions?sectionId=${section.id}`);
-            const questionsData = await questionsResponse.json();
+            const questionsResponse = await fetch(`http://localhost:5000/api/v1/questions?sectionId=${section.id}`)
+            const questionsData = await questionsResponse.json()
 
             const questionsWithSuggestions = await Promise.all(
               questionsData.questions.map(async question => {
                 const suggestionsResponse = await fetch(
                   `http://localhost:5000/api/v1/suggestions?questionId=${question.id}`
-                );
-                const suggestionsData = await suggestionsResponse.json();
+                )
+                const suggestionsData = await suggestionsResponse.json()
 
-                return { ...question, suggestions: suggestionsData };
+                return { ...question, suggestions: suggestionsData }
               })
-            );
+            )
 
-            return { ...section, questions: questionsWithSuggestions };
+            return { ...section, questions: questionsWithSuggestions }
           })
-        );
+        )
 
-        setSections(sectionsWithQuestions);
+        setSections(sectionsWithQuestions)
       } catch (error) {
-        console.error('Error fetching quiz data:', error);
+        console.error('Error fetching quiz data:', error)
       }
-    };
+    }
 
     if (quizId) {
-      fetchData();
+      fetchData()
     }
-  }, [quizId]);
+  }, [quizId])
 
   if (!sections.length) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   const handlePreviousSection = () => {
-    setCurrentSection(prevSection => prevSection - 1);
-  };
+    setCurrentSection(prevSection => prevSection - 1)
+  }
 
   const handleNextSection = () => {
     const selectedSuggestions = Array.from(document.querySelectorAll('input[name^="op"]:checked')).map(
       element => element.value
-    );
-    setSelections([...selections, ...selectedSuggestions]);
+    )
+    setSelections([...selections, ...selectedSuggestions])
 
-    const sectionResult = calculateSectionScore(selectedSuggestions, currentSection);
-    setSectionScores([...sectionScores, sectionResult]);
+    const sectionResult = calculateSectionScore(selectedSuggestions, currentSection)
+    setSectionScores([...sectionScores, sectionResult])
 
     if (currentSection === sections.length - 1) {
-      setSubmitted(true);
+      setSubmitted(true)
     } else {
-      setCurrentSection(prevSection => prevSection + 1);
-      
+      setCurrentSection(prevSection => prevSection + 1)
+
       if (currentSection === 0) {
-        setSideImage('side-img2.png');
+        setSideImage('side-img2.png')
       } else if (currentSection === 1) {
-        setSideImage('side-img3.png');
+        setSideImage('side-img3.png')
       }
     }
-  };
+  }
 
   const calculateSectionScore = (selectedSuggestions, currentSection) => {
-    let sectionScore = 0;
-    let sectionTitle = '';
+    let sectionScore = 0
+    let sectionTitle = ''
 
-    const section = sections[currentSection];
+    const section = sections[currentSection]
     if (section && section.questions) {
       section.questions.forEach(question => {
         question.suggestions.suggestions.forEach(suggestion => {
           if (suggestion.note && selectedSuggestions.includes(suggestion.content)) {
-            sectionScore += suggestion.note;
+            sectionScore += suggestion.note
           }
-        });
-      });
+        })
+      })
     }
 
     if (section) {
-      sectionTitle = section.title;
+      sectionTitle = section.title
     }
 
-    return { score: sectionScore, title: sectionTitle };
-  };
+    return { score: sectionScore, title: sectionTitle }
+  }
 
   const calculateTotalScore = () => {
-    let totalScore = 0;
+    let totalScore = 0
     sectionScores.forEach(sectionResult => {
-      totalScore += sectionResult.score;
-    });
+      totalScore += sectionResult.score
+    })
 
-    return totalScore;
-  };
-  const totalScore = calculateTotalScore();
+    return totalScore
+  }
+  const totalScore = calculateTotalScore()
 
   return (
     <>
@@ -162,11 +168,12 @@ const Quiz = () => {
                                 question.suggestions.suggestions.length > 0 &&
                                 question.suggestions.suggestions.map((suggestion, suggestionIndex) => (
                                   <div className='col-md-10 tab-5' key={suggestionIndex}>
-
-                                    <div className={`form-${question.type === 'single_choice' ? 'radio' : 'checkbox'} suggestions-container`}>
-
+                                    <div
+                                      className={`form-${
+                                        question.type === 'single_choice' ? 'radio' : 'checkbox'
+                                      } suggestions-container`}
+                                    >
                                       {question.type === 'single_choice' ? (
-
                                         <input
                                           type='radio'
                                           name={`op${sectionIndex + 1}`}
@@ -175,7 +182,6 @@ const Quiz = () => {
                                             setSelections([...selections, e.target.value])
                                           }}
                                         />
-
                                       ) : (
                                         <input
                                           type='checkbox'
@@ -237,7 +243,7 @@ const Quiz = () => {
         <img src='/images/quiz/partical_2.png' alt='Partical' />
       </div>
     </>
-  );
-};
+  )
+}
 
-export default Quiz;
+export default Quiz
